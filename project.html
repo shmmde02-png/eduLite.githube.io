@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduLite — Система</title>
+  <style>
+    * { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    .hidden { display: none !important; }
+    .container { max-width: 480px; margin: auto; min-height: 100vh; }
+    .admin-container { max-width: 1000px; margin: auto; padding: 20px; }
+    .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); margin-bottom: 20px; color: #1e293b; }
+    input, select, button { padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #cbd5e1; width: 100%; font-size: 1rem; }
+    button { background: #3b82f6; color: white; border: none; cursor: pointer; font-weight: bold; }
+    .back { background: #64748b !important; }
+    .danger { background: #ef4444 !important; }
+    .entry { background: #f1f5f9; padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 4px solid #3b82f6; color: #334155; }
+    .header { padding: 20px; background: rgba(30,41,59,0.8); display: flex; justify-content: space-between; align-items: center; }
+    .section-card { background: rgba(30,41,59,0.6); border-radius: 16px; margin: 0 16px 12px; padding: 18px; border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; gap: 15px; }
+    .section-page { padding: 20px; background: #0f172a; min-height: 100vh; }
+    .back-btn { background: none; color: #60a5fa; width: auto; font-size: 1.2rem; padding: 0; margin-bottom: 15px; text-align: left; }
+    .item-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 15px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 8px; }
+    
+    /* СТИЛИ ОЦЕНОК ПО ФОТО */
+    .grades-nav { display: flex; gap: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; }
+    .grades-nav div { padding-bottom: 10px; cursor: pointer; opacity: 0.6; }
+    .grades-nav div.active { opacity: 1; border-bottom: 2px solid #a3e635; color: #a3e635; }
+    .grade-circle { width: 45px; height: 45px; border-radius: 50%; background: #546e7a; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; color: white; }
+    .grade-btns { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px; }
+    .date-label { font-size: 0.8rem; opacity: 0.5; text-transform: uppercase; margin: 15px 0 10px; }
+  </style>
+</head>
+<body>
+
+<div class="container" id="loginPage">
+  <div class="card" style="margin-top: 25vh;">
+    <h2 style="text-align:center; margin-bottom:15px;">EduLite Вход</h2>
+    <input id="loginInput" placeholder="Логин">
+    <input id="passwordInput" type="password" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+  </div>
+</div>
+
+<div class="admin-container hidden" id="adminPanel">
+  <div class="card">
+    <h2>Админ-панель</h2><br>
+    <button onclick="showPanel('createStudentPanel')">Создать ученика</button>
+    <button onclick="showPanel('createTeacherPanel')">Создать учителя</button>
+    <button onclick="showPanel('scheduleClassesPanel')">Расписание классов</button>
+    <button onclick="showPanel('scheduleTeachersPanel')">Расписание учителей</button>
+    <br><h3>Пользователи:</h3>
+    <ul id="usersList" style="margin: 10px 0;"></ul>
+    <button class="danger" onclick="logout()">Выйти</button>
+  </div>
+</div>
+
+<div class="admin-container hidden" id="createStudentPanel">
+  <div class="card">
+    <h2>Новый ученик</h2>
+    <input id="studLogin" placeholder="Логин">
+    <input id="studPass" placeholder="Пароль">
+    <input id="studName" placeholder="Ф.И.О.">
+    <select id="studClass">
+      <script>for(let i=1;i<=11;i++)document.write(`<option value="${i}">${i} класс</option>`)</script>
+    </select>
+    <button onclick="createStudent()">Создать</button>
+    <button class="back" onclick="showPanel('adminPanel')">Назад</button>
+  </div>
+</div>
+
+<div class="admin-container hidden" id="createTeacherPanel">
+  <div class="card">
+    <h2>Новый учитель</h2>
+    <input id="teachLogin" placeholder="Логин">
+    <input id="teachPass" placeholder="Пароль">
+    <input id="teachName" placeholder="Ф.И.О.">
+    <input id="teachSubject" placeholder="Например: Учитель истории">
+    <button onclick="createTeacher()">Создать</button>
+    <button class="back" onclick="showPanel('adminPanel')">Назад</button>
+  </div>
+</div>
+
+<div class="admin-container hidden" id="scheduleClassesPanel">
+  <div class="card">
+    <h2>Расписание классов</h2>
+    <select id="clsClassSelect" style="width:auto;"><option value="8">8 класс</option><option value="9">9 класс</option></select>
+    <select id="clsDaySelect" style="width:auto;">
+      <option value="понедельник">Понедельник</option><option value="вторник">Вторник</option>
+      <option value="среда">Среда</option><option value="четверг">Четверг</option><option value="пятница">Пятница</option>
+    </select>
+    <button onclick="loadClassDayForEdit()" style="width:auto;">Редактировать</button>
+    <div id="classDayEditor" class="hidden" style="margin-top:20px;"></div>
+    <br><button class="back" onclick="showPanel('adminPanel')">Назад</button>
+  </div>
+</div>
+
+<div class="admin-container hidden" id="scheduleTeachersPanel">
+  <div class="card">
+    <h2>Расписание учителей</h2>
+    <select id="teacherSelectForEdit"><option value="">Выберите учителя</option></select>
+    <select id="teacherDaySelect">
+      <option value="понедельник">Понедельник</option><option value="вторник">Вторник</option>
+    </select>
+    <button onclick="loadTeacherDayForEdit()">Загрузить</button>
+    <div id="teacherDayEditor" class="hidden" style="margin-top:20px;"></div>
+    <br><button class="back" onclick="showPanel('adminPanel')">Назад</button>
+  </div>
+</div>
+
+<div class="container hidden" id="teacherDashboard">
+  <div class="header">
+    <div>
+      <h1 id="dispTeachName">Имя</h1>
+      <p style="opacity:0.6; font-size:1rem">Учитель</p>
+      <p id="dispTeachSubj" style="opacity:0.8; font-size:0.9rem"></p>
+    </div>
+  </div>
+  <div class="section-card" onclick="showTeacherSection('grades')">
+    <div style="font-size:2rem; color:#fbbf24;">📝</div>
+    <div><b>Поставить оценки</b><br><small>Выбор класса и типа работы</small></div>
+  </div>
+  <div style="padding:20px"><button onclick="logout()" class="back">Выйти</button></div>
+</div>
+
+<div class="container hidden" id="teacherGradesStep1">
+  <div class="section-page">
+    <button class="back-btn" onclick="showPanel('teacherDashboard')">← Назад</button>
+    <h2>Параметры</h2>
+    <select id="workType">
+      <option value="Домашнее задание">Домашнее задание</option>
+      <option value="Классная работа">Классная работа</option>
+      <option value="GAT">GAT</option>
+      <option value="Экзамены">Экзамены</option>
+    </select>
+    <select id="classSelectGrade">
+      <script>for(let i=1;i<=11;i++)document.write(`<option value="${i}">${i} класс</option>`)</script>
+    </select>
+    <button onclick="teacherSelectClass()">Выбрать класс</button>
+  </div>
+</div>
+
+<div class="container hidden" id="teacherStudentList">
+  <div class="section-page">
+    <button class="back-btn" onclick="showPanel('teacherGradesStep1')">← Назад</button>
+    <h2 id="classLabel">Ученики</h2>
+    <div id="studentsInClass" style="margin-top:20px;"></div>
+  </div>
+</div>
+
+<div class="container hidden" id="teacherSetGrade">
+  <div class="section-page">
+    <button class="back-btn" onclick="showPanel('teacherStudentList')">← Назад</button>
+    <h2 id="targetStudentName">Имя</h2>
+    <p id="targetWorkInfo" style="opacity:0.7; margin-bottom:20px;"></p>
+    <div class="grade-btns">
+      <button onclick="confirmGrade(0)">0</button><button onclick="confirmGrade(1)">1</button>
+      <button onclick="confirmGrade(2)">2</button><button onclick="confirmGrade(3)">3</button>
+      <button onclick="confirmGrade(4)">4</button><button onclick="confirmGrade(5)">5</button>
+      <button onclick="confirmGrade(6)">6</button><button onclick="confirmGrade(7)">7</button>
+      <button onclick="confirmGrade(8)">8</button><button onclick="confirmGrade(9)">9</button>
+    </div>
+  </div>
+</div>
+
+<div class="container hidden" id="studentDashboard">
+  <div class="header">
+    <div>
+      <h1 id="dispStudName">Имя</h1>
+      <p style="opacity:0.6; font-size:0.8rem">Ученик · <span id="dispStudClass"></span> класс</p>
+    </div>
+  </div>
+  <div class="section-card" onclick="showStudentSection('schedule')">
+    <div style="font-size:2rem">📅</div>
+    <div><b>Расписание</b><br><small>Твои уроки на неделю</small></div>
+  </div>
+  <div class="section-card" onclick="showStudentSection('grades')">
+    <div style="font-size:2rem; color:#fbbf24;">A+</div>
+    <div><b>Оценки</b><br><small>Успеваемость по предметам</small></div>
+  </div>
+  <div style="padding:20px"><button onclick="logout()" class="back">Выйти</button></div>
+</div>
+
+<div class="container hidden" id="studentSchedule">
+  <div class="section-page">
+    <button class="back-btn" onclick="showPanel('studentDashboard')">← Назад</button>
+    <h2>Расписание</h2>
+    <select id="studDaySelect" onchange="renderStudentSchedule()" style="background:#1e293b; color:white;">
+      <option value="понедельник">Понедельник</option>
+      <option value="вторник">Вторник</option>
+      <option value="среда">Среда</option>
+      <option value="четверг">Четверг</option>
+      <option value="пятница">Пятница</option>
+    </select>
+    <div id="scheduleContainer" style="margin-top:15px;"></div>
+  </div>
+</div>
+
+<div class="container hidden" id="studentGrades">
+  <div class="section-page">
+    <button class="back-btn" onclick="showPanel('studentDashboard')">← Назад</button>
+    <p style="opacity:0.6; font-size: 0.9rem;">Оценки</p>
+    <h1 style="margin-bottom:5px; font-size: 1.8rem;">Все предметы</h1>
+    <p style="opacity:0.6; font-size:0.85rem; margin-bottom:20px;">квартал 3/4 · 2025/2026 ▾</p>
+    <div class="grades-nav">
+      <div id="navSubject" class="active" onclick="switchGradesView('subject')">По предмету</div>
+      <div id="navDate" onclick="switchGradesView('date')">По дате</div>
+    </div>
+    <div id="gradesContent"></div>
+  </div>
+</div>
+
+<script>
+let users = JSON.parse(localStorage.getItem("users")) || [
+  {login:"admin", password:"123", role:"admin", name:"Админ"},
+  {login:"stud1", password:"123", role:"student", name:"Sherali Narozov", class:"8"}
+];
+let classSchedule = JSON.parse(localStorage.getItem("classSchedule")) || {};
+let teacherSchedule = JSON.parse(localStorage.getItem("teacherSchedule")) || {};
+let gradesData = JSON.parse(localStorage.getItem("gradesData")) || [];
+let currentUser = null;
+let currentGradesView = 'subject';
+
+function save() {
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("classSchedule", JSON.stringify(classSchedule));
+  localStorage.setItem("teacherSchedule", JSON.stringify(teacherSchedule));
+  localStorage.setItem("gradesData", JSON.stringify(gradesData));
+}
+
+function showPanel(id) {
+  document.querySelectorAll('.container, .admin-container').forEach(el => el.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+function login() {
+  const l = document.getElementById("loginInput").value.trim();
+  const p = document.getElementById("passwordInput").value;
+  const u = users.find(x => x.login === l && x.password === p);
+  if (!u) return alert("Ошибка!");
+  currentUser = u;
+  if (u.role === "admin") { showPanel("adminPanel"); renderUsers(); }
+  else if (u.role === "teacher") {
+    showPanel("teacherDashboard");
+    document.getElementById("dispTeachName").textContent = u.name;
+    document.getElementById("dispTeachSubj").textContent = u.subject;
+  } else {
+    showPanel("studentDashboard");
+    document.getElementById("dispStudName").textContent = u.name;
+    document.getElementById("dispStudClass").textContent = u.class;
+  }
+}
+
+function logout() { showPanel("loginPage"); }
+
+// АДМИН
+function renderUsers() {
+  const ul = document.getElementById("usersList");
+  ul.innerHTML = users.filter(u => u.role !== "admin").map(u => `<li>${u.name} (${u.role})</li>`).join("");
+  const sel = document.getElementById("teacherSelectForEdit");
+  sel.innerHTML = '<option value="">Выберите учителя</option>' +
+    users.filter(u => u.role === "teacher").map(t => `<option value="${t.login}">${t.name}</option>`).join("");
+}
+
+function createStudent() {
+  users.push({ login: document.getElementById("studLogin").value, password: document.getElementById("studPass").value, name: document.getElementById("studName").value, role: "student", class: document.getElementById("studClass").value });
+  save(); alert("Ок"); showPanel("adminPanel"); renderUsers();
+}
+
+function createTeacher() {
+  users.push({ login: document.getElementById("teachLogin").value, password: document.getElementById("teachPass").value, name: document.getElementById("teachName").value, role: "teacher", subject: document.getElementById("teachSubject").value });
+  save(); alert("Ок"); showPanel("adminPanel"); renderUsers();
+}
+
+// РАСПИСАНИЕ (АДМИН)
+function loadClassDayForEdit() {
+  const cls = document.getElementById("clsClassSelect").value;
+  const day = document.getElementById("clsDaySelect").value;
+  if (!classSchedule[cls]) classSchedule[cls] = {};
+  if (!classSchedule[cls][day]) classSchedule[cls][day] = Array(8).fill("—");
+  let html = `<h4>${cls} кл, ${day}</h4>`;
+  for(let i=1; i<=8; i++) html += `${i}. <input type="text" id="clsL${i}" value="${classSchedule[cls][day][i-1]}"><br>`;
+  html += `<button onclick="saveClassDay('${cls}','${day}')">Сохранить</button>`;
+  const ed = document.getElementById("classDayEditor");
+  ed.innerHTML = html; ed.classList.remove("hidden");
+}
+
+function saveClassDay(cls, day) {
+  const arr = [];
+  for(let i=1; i<=8; i++) arr.push(document.getElementById("clsL"+i).value || "—");
+  classSchedule[cls][day] = arr;
+  save(); alert("ОК");
+}
+
+function loadTeacherDayForEdit() {
+  const login = document.getElementById("teacherSelectForEdit").value;
+  const day = document.getElementById("teacherDaySelect").value;
+  if(!login) return;
+  if(!teacherSchedule[login]) teacherSchedule[login] = {};
+  if(!teacherSchedule[login][day]) teacherSchedule[login][day] = [];
+  let html = `<h4>${day}</h4>`;
+  teacherSchedule[login][day].forEach(it => html += `<div class="entry">${it.class} кл, ${it.lesson} ур.</div>`);
+  html += `<input id="newTLess" placeholder="№"><input id="newTCls" placeholder="Кл"><button onclick="addTeacherLesson('${login}','${day}')">Добавить</button>`;
+  const ed = document.getElementById("teacherDayEditor");
+  ed.innerHTML = html; ed.classList.remove("hidden");
+}
+
+function addTeacherLesson(login, day) {
+  teacherSchedule[login][day].push({lesson:document.getElementById("newTLess").value, class:document.getElementById("newTCls").value});
+  save(); loadTeacherDayForEdit();
+}
+
+// УЧИТЕЛЬ: ОЦЕНКИ
+let selectedStudentLogin = null;
+function showTeacherSection(sec) { if (sec === 'grades') showPanel('teacherGradesStep1'); }
+function teacherSelectClass() {
+  const cls = document.getElementById("classSelectGrade").value;
+  document.getElementById("classLabel").textContent = cls + " класс";
+  const cont = document.getElementById("studentsInClass");
+  cont.innerHTML = "";
+  users.filter(u => u.role === 'student' && u.class === cls).forEach(s => {
+    cont.innerHTML += `<div class="item-row" onclick="openGradeFor('${s.login}', '${s.name}')">${s.name}</div>`;
+  });
+  showPanel('teacherStudentList');
+}
+function openGradeFor(login, name) {
+  selectedStudentLogin = login;
+  document.getElementById("targetStudentName").textContent = name;
+  document.getElementById("targetWorkInfo").textContent = currentUser.subject + " | " + document.getElementById("workType").value;
+  showPanel('teacherSetGrade');
+}
+function confirmGrade(val) {
+  gradesData.push({ studentLogin: selectedStudentLogin, subject: currentUser.subject, type: document.getElementById("workType").value, grade: val, date: new Date().toLocaleDateString('ru-RU', {day:'2-digit', month:'long', year:'numeric'}).toUpperCase() });
+  save(); alert("ОК"); teacherSelectClass();
+}
+
+// УЧЕНИК: ОЦЕНКИ И РАСПИСАНИЕ
+function showStudentSection(sec) {
+  if (sec === 'schedule') { showPanel('studentSchedule'); renderStudentSchedule(); }
+  else { showPanel('studentGrades'); renderGradesView(); }
+}
+
+function renderStudentSchedule() {
+  const day = document.getElementById("studDaySelect").value;
+  const cont = document.getElementById("scheduleContainer");
+  cont.innerHTML = "";
+  const cls = currentUser.class;
+  if (classSchedule[cls] && classSchedule[cls][day]) {
+    classSchedule[cls][day].forEach((l, i) => cont.innerHTML += `<div class="item-row"><div>${i+1}. <b>${l}</b></div></div>`);
+  } else cont.innerHTML = "Пусто";
+}
+
+function switchGradesView(view) {
+  currentGradesView = view;
+  document.getElementById('navSubject').classList.toggle('active', view === 'subject');
+  document.getElementById('navDate').classList.toggle('active', view === 'date');
+  renderGradesView();
+}
+
+function renderGradesView() {
+  const cont = document.getElementById("gradesContent");
+  cont.innerHTML = "";
+  const myGrades = gradesData.filter(g => g.studentLogin === currentUser.login);
+
+  if (currentGradesView === 'subject') {
+    const subjects = [...new Set(myGrades.map(g => g.subject))];
+    subjects.forEach(sub => {
+      const gs = myGrades.filter(g => g.subject === sub);
+      const totalPoints = gs.reduce((acc, curr) => acc + curr.grade, 0);
+      const averagePercent = gs.length > 0 ? ((totalPoints / (gs.length * 9)) * 100).toFixed(1) : "0.0";
+      const gradesString = gs.map(g => `${g.grade} / 10`).join(", ");
+      const teacher = users.find(u => u.subject === sub)?.name || 'Учитель';
+
+      cont.innerHTML += `
+        <div class="item-row" style="background:none; border-bottom:1px solid rgba(255,255,255,0.1); padding: 15px 0; align-items: flex-start;">
+          <div class="grade-circle">${sub[0]}</div>
+          <div style="flex:1; margin-left:15px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+               <b style="font-size: 1.1rem;">${sub}</b>
+               <b style="font-size: 1.1rem;">${averagePercent}%</b>
+            </div>
+            <div style="opacity: 0.6; font-size: 0.85rem; margin: 4px 0;">${teacher}</div>
+            <div style="opacity: 0.8; font-size: 0.9rem; letter-spacing: 0.5px;">${gradesString}</div>
+          </div>
+        </div>`;
+    });
+  } else {
+    const dates = [...new Set(myGrades.map(g => g.date))];
+    dates.reverse().forEach(d => {
+      cont.innerHTML += `<div class="date-label" style="color: #94a3b8; font-weight: bold; margin-top: 20px;">${d}</div>`;
+      myGrades.filter(g => g.date === d).forEach(g => {
+        cont.innerHTML += `
+          <div class="item-row" style="background:none; border-bottom:1px solid rgba(255,255,255,0.05); padding: 12px 0;">
+            <div class="grade-circle">${g.subject[0]}</div>
+            <div style="flex:1; margin-left:15px;">
+              <b>${g.subject}</b><br>
+              <small style="opacity:0.5">${g.type} · 100 · ${g.type}</small>
+              <div style="font-weight: bold; margin-top: 5px;">${g.grade} / 10</div>
+            </div>
+          </div>`;
+      });
+    });
+  }
+}
+
+showPanel("loginPage");
+</script>
+</body>
+</html>
